@@ -1,39 +1,30 @@
 #!/usr/bin/env bash
-#Configure your Nginx server so that /redirect_me is redirecting to another page.
+# Installs, configures, and starts the server
+apt-get update
+apt-get -y install nginx
+sudo ufw allow 'Nginx HTTP'
+mkdir -p /var/www/html/
+sudo chmod -R 755 /var/www
+echo 'Hello World!' > /var/www/html/index.html
+SERVER_CONFIG=\
+"server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+	root /var/www/html;
+	index index.html index.htm index.nginx-debian.html;
+	server_name _;
+	location / {
+		try_files \$uri \$uri/ =404;
+	}
+	if (\$request_filename ~ redirect_me){
+		rewrite ^ https://sketchfab.com/bluepeno/models permanent;
+	}
+}"
 
-# Update apt and Install nginx
-sudo apt -y update
-sudo apt -y install nginx
+bash -c "echo -e '$SERVER_CONFIG' > /etc/nginx/sites-enabled/default"
 
-# Remove and replace /var/www to store static content
-rm -rf school
-mkdir school
-touch school/index.html
-echo "Hello World!" > school/index.html
-sudo rm -rf /var/www/school
-sudo mv school /var/www/
-
-# Change the default configuration of nginx
-# Add redirection for localhost/redirect_me
-touch default
-printf %s "server {
-        listen 80;
-        listen [::]:80;
-
-        root /var/www/school;
-        index index.html;
-
-        location /redirect_me {
-            return 301 https://youtube.com;
-        }
-}
-" > default
-
-# Remove and replace existing configurations
-sudo rm -rf /etc/nginx/sites-available/default
-sudo rm -rf /etc/nginx/sites-enabled/default
-sudo mv default /etc/nginx/sites-available/
-sudo ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-
-# Restart nginx
-sudo service nginx restart
+if [ "$(pgrep -c nginx)" -le 0 ]; then
+	service nginx start
+else
+	service nginx restart
+fi
