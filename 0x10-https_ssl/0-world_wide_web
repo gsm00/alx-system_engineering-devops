@@ -1,21 +1,16 @@
 #!/usr/bin/env bash
-# Extracts information from dig of website and prints out result
+# print domains and subdomains
 
-func1 () {
-    if [ $# -eq 1 ]; then
-	subs="www lb-01 web-01 web-02"
-    else
-	subs="$2"
-    fi
-    for bus in $subs
-    do
-	dig "$bus"."$1" | awk '!/;/' | grep '[[:blank:]]' |\
-awk -v bus="$bus" '{ print "The subdomain " bus " is a " $4 " record and points to " $5 }' ; echo | grep '[[:blank:]]'
-    done
+print_domain_subdomain () {
+    dig "$1" | grep -A1 'ANSWER SECTION:' | sed -r "s/$1./$2/g" | awk -F" " ' NR==2 { print "The subdomain " $1 " is a " $4 " record and points to " $5 }'
 }
 
-if [ "$#" -eq 1 ]; then
-    func1 "$1"
+if [ "$#" -eq 2 ]
+then
+    print_domain_subdomain "$2.$1" "$2"
 else
-    func1 "$1" "$2"
+    print_domain_subdomain "www.$1" "www"
+    print_domain_subdomain "lb-01.$1" "lb-01"
+    print_domain_subdomain "web-01.$1" "web-01"
+    print_domain_subdomain "web-02.$1" "web-02"
 fi
